@@ -9,25 +9,16 @@ appSetup () {
 	DOMAINPASS=${DOMAINPASS:-youshouldsetapassword^123}
 	JOIN=${JOIN:-false}
 	JOINSITE=${JOINSITE:-NONE}
-	MULTISITE=${MULTISITE:-false}
 	NOCOMPLEXITY=${NOCOMPLEXITY:-false}
 	INSECURELDAP=${INSECURELDAP:-false}
 	DNSFORWARDER=${DNSFORWARDER:-NONE}
 	HOSTIP=${HOSTIP:-NONE}
 	RPCPORTS=${RPCPORTS:-"49152-49172"}
 	DOMAIN_DC=${DOMAIN_DC:-${DOMAIN_DC}}
-	
+
 	LDOMAIN=${DOMAIN,,}
 	UDOMAIN=${DOMAIN^^}
 	URDOMAIN=${UDOMAIN%%.*}
-
-	# If multi-site, we need to connect to the VPN before joining the domain
-	if [[ ${MULTISITE,,} == "true" ]]; then
-		/usr/sbin/openvpn --config /docker.ovpn &
-		VPNPID=$!
-		echo "Sleeping 30s to ensure VPN connects ($VPNPID)";
-		sleep 30
-	fi
 
 	# Set host ip option
 	if [[ "$HOSTIP" != "NONE" ]]; then
@@ -89,23 +80,16 @@ appSetup () {
 	else
 		cp -f /etc/samba/external/smb.conf /etc/samba/smb.conf
 	fi
-        
+
 	# Set up supervisor
 	echo "[supervisord]" > /etc/supervisor/conf.d/supervisord.conf
+	echo "user=root" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "nodaemon=true" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "[program:ntpd]" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "command=/usr/sbin/ntpd -c /etc/ntpd.conf -n" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "[program:samba]" >> /etc/supervisor/conf.d/supervisord.conf
 	echo "command=/usr/sbin/samba -i" >> /etc/supervisor/conf.d/supervisord.conf
-	if [[ ${MULTISITE,,} == "true" ]]; then
-		if [[ -n $VPNPID ]]; then
-			kill $VPNPID
-		fi
-		echo "" >> /etc/supervisor/conf.d/supervisord.conf
-		echo "[program:openvpn]" >> /etc/supervisor/conf.d/supervisord.conf
-		echo "command=/usr/sbin/openvpn --config /docker.ovpn" >> /etc/supervisor/conf.d/supervisord.conf
-	fi
 
 	echo "server 127.127.1.0" > /etc/ntpd.conf
 	echo "fudge  127.127.1.0 stratum 10" >> /etc/ntpd.conf
@@ -167,8 +151,8 @@ objectCategory: CN=Class-Schema,CN=Schema,CN=Configuration,${DOMAIN_DC}
 defaultObjectCategory: CN=ldapPublicKey,CN=Schema,CN=Configuration,${DOMAIN_DC}
 mayContain: sshPublicKey
 schemaIDGUID:: +8nFQ43rpkWTOgbCCcSkqA==" > /tmp/Sshpubkey.class.ldif
-	ldbadd -H /var/lib/samba/private/sam.ldb /var/lib/samba/private/sam.ldb /tmp/Sshpubkey.attr.ldif --option="dsdb:schema update allowed"=true
-	ldbadd -H /var/lib/samba/private/sam.ldb /var/lib/samba/private/sam.ldb /tmp/Sshpubkey.class.ldif --option="dsdb:schema update allowed"=true
+	ldbadd -H /var/lib/samba/private/sam.ldb --option="dsdb:schema update allowed"=true /tmp/Sshpubkey.attr.ldif
+	ldbadd -H /var/lib/samba/private/sam.ldb --option="dsdb:schema update allowed"=true /tmp/Sshpubkey.class.ldif
 }
 
 appStart () {

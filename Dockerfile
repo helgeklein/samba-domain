@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -17,10 +17,8 @@ RUN \
         krb5-user \
         krb5-kdc \
         supervisor \
-        openvpn \
         inetutils-ping \
         ldb-tools \
-        vim \
         curl \
         dnsutils \
         ntp &&\
