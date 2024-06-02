@@ -21,6 +21,7 @@ RUN \
         ldb-tools \
         curl \
         dnsutils \
+	nano \
         ntp &&\
     apt-get clean autoclean &&\
     apt-get autoremove --yes &&\
